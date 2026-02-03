@@ -1,0 +1,37 @@
+name: stage-test-front
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout infra repo (scripts)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: infra
+
+      - name: Checkout target repo (master)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: master
+          fetch-depth: 0
+          path: project
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Node install/test/build
+        shell: bash
+        working-directory: project
+        run: ../infra/scripts/test/test-node.sh

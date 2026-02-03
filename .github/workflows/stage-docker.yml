@@ -1,0 +1,43 @@
+name: stage-docker
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      docker_image:
+        required: true
+        type: string
+      version_tag:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo at tag
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: ${{ inputs.version_tag }}
+          fetch-depth: 0
+
+      - name: Login Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ inputs.docker_image }}:${{ inputs.version_tag }}
