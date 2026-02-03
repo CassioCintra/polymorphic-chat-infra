@@ -23,7 +23,7 @@ jobs:
   version:
     runs-on: ubuntu-latest
     outputs:
-      version_tag: ${{ steps.ver.outputs.next }}
+      version_tag: ${{ steps.ver.outputs.version_tag }}
 
     steps:
       - name: Checkout infra repo (scripts)
@@ -83,9 +83,9 @@ jobs:
       - name: Commit & push bump to master
         shell: bash
         working-directory: project
-        run: ../infra/scripts/release/git-commit-push.sh "${{ steps.ver.outputs.next }}"
+        run: ../infra/scripts/release/git-commit-push.sh "${{ steps.ver.outputs.version_tag }}"
 
       - name: Tag & push
         shell: bash
         working-directory: project
-        run: ../infra/scripts/release/tag-and-push.sh "${{ steps.ver.outputs.next }}"
+        run: ../infra/scripts/release/tag-and-push.sh "${{ steps.ver.outputs.version_tag }}"
