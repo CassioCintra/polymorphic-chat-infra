@@ -1,0 +1,83 @@
+name: release-orchestrator
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      project:
+        required: true
+        type: string
+      project_key:
+        required: true
+        type: string
+      build_type:
+        required: true
+        type: string
+      bump_type:
+        required: true
+        type: string
+      docker_image:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  test-backend:
+    if: ${{ inputs.build_type == 'maven' }}
+    uses: ./.github/workflows/stage-test-back.yml
+    with:
+      repo: ${{ inputs.repo }}
+    secrets: inherit
+
+  test-frontend:
+    if: ${{ inputs.build_type == 'node' }}
+    uses: ./.github/workflows/stage-test-front.yml
+    with:
+      repo: ${{ inputs.repo }}
+    secrets: inherit
+
+  version:
+    needs: [test-backend, test-frontend]
+    uses: ./.github/workflows/stage-version.yml
+    with:
+      repo: ${{ inputs.repo }}
+      bump_type: ${{ inputs.bump_type }}
+      project_key: ${{ inputs.project_key }}
+    secrets: inherit
+
+  docker:
+    needs: [version]
+    uses: ./.github/workflows/stage-docker.yml
+    with:
+      repo: ${{ inputs.repo }}
+      docker_image: ${{ inputs.docker_image }}
+      version_tag: ${{ needs.version.outputs.version_tag }}
+    secrets: inherit
+
+  update_compose_env:
+    needs: [docker, version]
+    uses: ./.github/workflows/stage-update-compose-env.yml
+    with:
+      project_key: ${{ inputs.project_key }}
+      version_tag: ${{ needs.version.outputs.version_tag }}
+    secrets: inherit
+
+  notify:
+    if: ${{ always() }}
+    needs: [test-frontend, test-backend, version, docker, update_compose_env]
+    uses: ./.github/workflows/stage-discord.yml
+    with:
+      project: ${{ inputs.project }}
+      repo: ${{ inputs.repo }}
+      test_result: ${{ (inputs.build_type == 'maven' && needs.test-backend.result) || needs.test-frontend.result }}
+      version_result: ${{ needs.version.result }}
+      docker_result: ${{ needs.docker.result }}
+      update_compose_result: ${{ needs.update_compose_env.result }}
+      version_tag: ${{ needs.version.outputs.version_tag }}
+      docker_image: ${{ inputs.docker_image }}
+      run_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    secrets: inherit

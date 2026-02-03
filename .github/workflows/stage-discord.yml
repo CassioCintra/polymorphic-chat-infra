@@ -1,0 +1,59 @@
+name: stage-discord
+
+on:
+  workflow_call:
+    inputs:
+      project:
+        required: true
+        type: string
+      repo:
+        required: true
+        type: string
+      test_result:
+        required: true
+        type: string
+      version_result:
+        required: true
+        type: string
+      docker_result:
+        required: true
+        type: string
+      update_compose_result:
+        required: true
+        type: string
+      version_tag:
+        required: false
+        type: string
+      docker_image:
+        required: false
+        type: string
+      run_url:
+        required: true
+        type: string
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        required: true
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Send Discord message
+        shell: bash
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          PROJECT: ${{ inputs.project }}
+          REPO: ${{ inputs.repo }}
+          TEST_RESULT: ${{ inputs.test_result }}
+          VERSION_RESULT: ${{ inputs.version_result }}
+          DOCKER_RESULT: ${{ inputs.docker_result }}
+          UPDATE_COMPOSE_RESULT: ${{ inputs.update_compose_result }}
+          VERSION_TAG: ${{ inputs.version_tag }}
+          DOCKER_IMAGE: ${{ inputs.docker_image }}
+          RUN_URL: ${{ inputs.run_url }}
+        run: ./scripts/discord/send-discord.sh

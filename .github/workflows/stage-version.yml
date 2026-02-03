@@ -1,0 +1,89 @@
+name: stage-version
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      bump_type:
+        required: true
+        type: string
+      project_key:
+        required: true
+        type: string
+    outputs:
+      version_tag:
+        value: ${{ jobs.version.outputs.version_tag }}
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.ver.outputs.next }}
+
+    steps:
+      - name: Checkout infra repo (scripts)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          path: infra
+
+      - name: Checkout target repo via Deploy Key
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: master
+          fetch-depth: 0
+          path: project
+          ssh-key: ${{ inputs.project_key == 'backend' && secrets.BACKEND_DEPLOY_KEY || secrets.FRONTEND_DEPLOY_KEY }}
+
+      - name: Compute next version
+        id: ver
+        shell: bash
+        working-directory: project
+        run: ../infra/scripts/release/compute-next-version.sh "${{ inputs.bump_type }}"
+
+      - name: Detect project type
+        id: detect
+        shell: bash
+        working-directory: project
+        run: ../infra/scripts/release/detect-project-type.sh
+
+      - name: Set up Java 21
+        if: ${{ steps.detect.outputs.type == 'maven' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Set up Node 20
+        if: ${{ steps.detect.outputs.type == 'node' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Bump version (maven/node)
+        shell: bash
+        working-directory: project
+        run: |
+          if [ "${{ steps.detect.outputs.type }}" = "maven" ]; then
+            ../infra/scripts/release/bump-maven-version.sh "${{ steps.ver.outputs.next_version }}"
+          else
+            ../infra/scripts/release/bump-node-version.sh "${{ steps.ver.outputs.next_version }}"
+          fi
+
+      - name: Commit & push bump to master
+        shell: bash
+        working-directory: project
+        run: ../infra/scripts/release/git-commit-push.sh "${{ steps.ver.outputs.next }}"
+
+      - name: Tag & push
+        shell: bash
+        working-directory: project
+        run: ../infra/scripts/release/tag-and-push.sh "${{ steps.ver.outputs.next }}"

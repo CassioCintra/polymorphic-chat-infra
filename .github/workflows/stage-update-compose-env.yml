@@ -1,0 +1,27 @@
+name: stage-update-compose-env
+
+on:
+  workflow_call:
+    inputs:
+      project_key:
+        required: true
+        type: string
+      version_tag:
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout infra repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update deploy/.env
+        shell: bash
+        run: ./scripts/compose/update-dotenv.sh "${{ inputs.project_key }}" "${{ inputs.version_tag }}"

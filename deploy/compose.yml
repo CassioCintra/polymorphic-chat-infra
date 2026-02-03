@@ -1,0 +1,37 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: polymorphic-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    image: cassiocintra/polymorphic-chat-backend:${BACKEND_VERSION}
+    container_name: polymorphic-backend
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE}
+      SPRING_DATA_MONGODB_URI: ${MONGODB_URI}
+      JWT_SECRET: ${JWT_SECRET?JWT_SECRET not set}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS}
+    ports:
+      - "8080:8080"
+
+  frontend:
+    image: cassiocintra/polymorphic-chat-frontend:${FRONTEND_VERSION}
+    container_name: polymorphic-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      API_BASE_URL: ${API_BASE_URL}
+    ports:
+      - "3000:80"
+
+volumes:
+  mongo_data:
