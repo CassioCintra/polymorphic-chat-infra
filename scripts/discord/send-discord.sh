@@ -14,24 +14,38 @@ tag="${VERSION_TAG:-}"
 image="${DOCKER_IMAGE:-}"
 run_url="${RUN_URL:-}"
 
-content="**Release**: ${project}
-Repo: ${repo}
-Test: ${status_test}
-Version: ${status_version}
-Docker: ${status_docker}
-Compose: ${status_compose}
-Tag: ${tag}
-Image: ${image}
-Run: ${run_url}"
+content="@everyone
+**Release**: ${project}
+**Repo**: ${repo}
+**Test**: ${status_test}
+**Version**: ${status_version}
+**Docker**: ${status_docker}
+**Compose**: ${status_compose}
+**Tag**: ${tag}
+**Image**: ${image}
+**Run**: ${run_url}"
 
-payload="$(jq -nc --arg content "$content" '{content:$content}' 2>/dev/null || true)"
+json_escape() {
+  printf '%s' "$1" \
+    | sed 's/\\/\\\\/g' \
+    | sed 's/"/\\"/g' \
+    | sed ':a;N;$!ba;s/\n/\\n/g'
+}
 
-if [[ -z "${payload}" ]]; then
-  # fallback sem jq
-  payload="{\"content\":\"${content//\"/\\\"}\"}"
-fi
+escaped_content="$(json_escape "$content")"
+
+payload="$(cat <<EOF
+{
+  "content": "$escaped_content",
+  "allowed_mentions": {
+    "parse": ["everyone"]
+  }
+}
+EOF
+)"
 
 curl -sS -X POST \
   -H "Content-Type: application/json" \
-  -d "${payload}" \
-  "${DISCORD_WEBHOOK_URL}" >/dev/null
+  -d "$payload" \
+  "$DISCORD_WEBHOOK_URL" \
+  >/dev/null
