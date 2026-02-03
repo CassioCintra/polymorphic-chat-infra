@@ -29,6 +29,8 @@ jobs:
       - name: Checkout infra repo (scripts)
         uses: actions/checkout@v4
         with:
+          repository: CassioCintra/polymorphic-chat-infra
+          ref: master
           fetch-depth: 0
           path: infra
 
