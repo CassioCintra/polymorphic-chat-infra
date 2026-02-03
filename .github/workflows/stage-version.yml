@@ -23,7 +23,7 @@ jobs:
   version:
     runs-on: ubuntu-latest
     outputs:
-      version_tag: ${{ steps.ver.outputs.version_tag }}
+      version_tag: ${{ steps.ver.outputs.next }}
 
     steps:
       - name: Checkout infra repo (scripts)
@@ -50,42 +50,52 @@ jobs:
         run: ../infra/scripts/release/compute-next-version.sh "${{ inputs.bump_type }}"
 
       - name: Detect project type
-        id: detect
+        id: project
         shell: bash
         working-directory: project
         run: ../infra/scripts/release/detect-project-type.sh
 
-      - name: Set up Java 21
-        if: ${{ steps.detect.outputs.type == 'maven' }}
+      - name: Setup Java
+        if: steps.project.outputs.type == 'maven'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "21"
+          java-version: 21
           cache: maven
 
+      - name: Bump Maven version
+        if: steps.project.outputs.type == 'maven'
+        shell: bash
+        working-directory: project
+        run: |
+          ../infra/scripts/release/bump-maven-version.sh \
+            "${{ steps.ver.outputs.next_version }}"
+
       - name: Set up Node 20
-        if: ${{ steps.detect.outputs.type == 'node' }}
+        if: steps.detect.outputs.type == 'node'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
 
-      - name: Bump version (maven/node)
+      - name: Bump Node version
+        if: steps.project.outputs.type == 'node'
         shell: bash
         working-directory: project
         run: |
-          if [ "${{ steps.detect.outputs.type }}" = "maven" ]; then
-            ../infra/scripts/release/bump-maven-version.sh "${{ steps.ver.outputs.next_version }}"
-          else
-            ../infra/scripts/release/bump-node-version.sh "${{ steps.ver.outputs.next_version }}"
-          fi
+          ../infra/scripts/release/bump-node-version.sh \
+            "${{ steps.ver.outputs.next_version }}"
 
       - name: Commit & push bump to master
         shell: bash
         working-directory: project
-        run: ../infra/scripts/release/git-commit-push.sh "${{ steps.ver.outputs.version_tag }}"
+        run: |
+          ../infra/scripts/release/git-commit-push.sh \
+            "${{ steps.ver.outputs.next }}"
 
       - name: Tag & push
         shell: bash
         working-directory: project
-        run: ../infra/scripts/release/tag-and-push.sh "${{ steps.ver.outputs.version_tag }}"
+        run: |
+          ../infra/scripts/release/tag-and-push.sh \
+            "${{ steps.ver.outputs.next }}"
