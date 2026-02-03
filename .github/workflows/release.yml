@@ -56,6 +56,7 @@ jobs:
 
   docker:
     needs: [version]
+    if: ${{ needs.version.result == 'success' }}
     uses: ./.github/workflows/stage-docker.yml
     with:
       repo: ${{ inputs.repo }}
@@ -65,6 +66,7 @@ jobs:
 
   update_compose_env:
     needs: [docker, version]
+    if: ${{ needs.docker.result == 'success' && needs.version.result == 'success'}}
     uses: ./.github/workflows/stage-update-compose-env.yml
     with:
       project_key: ${{ inputs.project_key }}
