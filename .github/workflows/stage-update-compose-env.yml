@@ -23,6 +23,7 @@ jobs:
           repository: CassioCintra/polymorphic-chat-infra
           ref: master
           fetch-depth: 0
+          token: ${{ secrets.INFRA_PAT }}
 
       - name: Update deploy/.env
         shell: bash
