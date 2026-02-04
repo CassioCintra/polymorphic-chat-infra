@@ -23,5 +23,20 @@ git config user.name "github-actions[bot]"
 git config user.email "github-actions[bot]@users.noreply.github.com"
 
 git add "$file"
-git commit -m "chore(deploy): update ${key} to ${version_tag} [skip ci]" || echo "No changes"
-git push
+
+if git diff --cached --quiet; then
+  echo "No changes"
+  exit 0
+fi
+
+git commit -m "chore(deploy): update ${key} to ${version_tag} [skip ci]"
+
+: "${INFRA_PAT:?missing INFRA_PAT}"
+
+git remote set-url origin "https://x-access-token:${INFRA_PAT}@github.com/CassioCintra/polymorphic-chat-infra.git"
+
+git config --local --unset-all http.https://github.com/.extraheader 2>/dev/null || true
+git config --local --unset-all "http.https://github.com/CassioCintra/polymorphic-chat-infra.git/.extraheader" 2>/dev/null || true
+
+git push origin HEAD:master
+
