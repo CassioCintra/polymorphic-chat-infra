@@ -43,7 +43,7 @@ jobs:
   version:
     needs: [test_backend, test_frontend]
     if: >-
-      ${{ always() && (
+      ${{ (
         (inputs.build_type == 'maven' && needs.test_backend.result  == 'success') ||
         (inputs.build_type == 'node'  && needs.test_frontend.result == 'success')
       ) }}
