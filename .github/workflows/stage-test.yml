@@ -20,21 +20,34 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout infra repo (actions)
+        uses: actions/checkout@v4
+        with:
+          repository: CassioCintra/polymorphic-chat-infra
+          ref: master
+          path: infra
+          fetch-depth: 0
+
       - name: Checkout target repo via Deploy Key
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repo }}
           ref: development
+          path: project
           fetch-depth: 0
           ssh-key: ${{ inputs.project_key == 'backend' && secrets.BACKEND_DEPLOY_KEY || secrets.FRONTEND_DEPLOY_KEY }}
 
       - name: Test Backend (Maven)
         if: ${{ inputs.build_type == 'maven' }}
-        uses: ./.github/actions/test-maven
+        uses: ./infra/.github/actions/test-maven
+        with:
+          working_directory: project
 
       - name: Test Frontend (Node)
         if: ${{ inputs.build_type == 'node' }}
-        uses: ./.github/actions/test-node
+        uses: ./infra/.github/actions/test-node
+        with:
+          working_directory: project
 
       - name: Fail if invalid build_type
         if: ${{ inputs.build_type != 'maven' && inputs.build_type != 'node' }}
