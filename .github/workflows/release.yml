@@ -21,6 +21,9 @@ on:
       docker_image:
         required: true
         type: string
+    secrets:
+      INFRA_PAT:
+        required: true
 
 permissions:
   contents: write

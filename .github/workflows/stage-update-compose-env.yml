@@ -9,6 +9,9 @@ on:
       version_tag:
         required: true
         type: string
+    secrets:
+      INFRA_PAT:
+        required: true
 
 permissions:
   contents: write
@@ -24,7 +27,10 @@ jobs:
           ref: master
           fetch-depth: 0
           token: ${{ secrets.INFRA_PAT }}
+          persist-credentials: true
 
       - name: Update deploy/.env
         shell: bash
+        env:
+          INFRA_PAT: ${{ secrets.INFRA_PAT }}
         run: ./scripts/compose/update-dotenv.sh "${{ inputs.project_key }}" "${{ inputs.version_tag }}"
