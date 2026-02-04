@@ -20,14 +20,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout infra repo (actions)
-        uses: actions/checkout@v4
-        with:
-          repository: CassioCintra/polymorphic-chat-infra
-          ref: master
-          path: infra
-          fetch-depth: 0
-
       - name: Checkout target repo via Deploy Key
         uses: actions/checkout@v4
         with:
@@ -39,13 +31,13 @@ jobs:
 
       - name: Test Backend (Maven)
         if: ${{ inputs.build_type == 'maven' }}
-        uses: ./infra/.github/actions/test-maven
+        uses: CassioCintra/polymorphic-chat-infra/.github/actions/test-maven@master
         with:
           working_directory: project
 
       - name: Test Frontend (Node)
         if: ${{ inputs.build_type == 'node' }}
-        uses: ./infra/.github/actions/test-node
+        uses: CassioCintra/polymorphic-chat-infra/.github/actions/test-node@master
         with:
           working_directory: project
 
