@@ -26,27 +26,18 @@ permissions:
   contents: write
 
 jobs:
-  test_backend:
-    if: ${{ inputs.build_type == 'maven' }}
-    uses: ./.github/workflows/stage-test-back.yml
+  test:
+    if: always()
+    uses: ./.github/workflows/stage-test.yml
     with:
       repo: ${{ inputs.repo }}
-    secrets: inherit
-
-  test_frontend:
-    if: ${{ inputs.build_type == 'node' }}
-    uses: ./.github/workflows/stage-test-front.yml
-    with:
-      repo: ${{ inputs.repo }}
+      build_type: ${{ inputs.build_type }}
+      project_key: ${{ inputs.project_key}}
     secrets: inherit
 
   version:
-    needs: [test_backend, test_frontend]
-    if: >-
-      ${{ (
-        (inputs.build_type == 'maven' && needs.test_backend.result  == 'success') ||
-        (inputs.build_type == 'node'  && needs.test_frontend.result == 'success')
-      ) }}
+    needs: [test]
+    if: ${{ needs.test.result == 'success' }}
     uses: ./.github/workflows/stage-version.yml
     with:
       repo: ${{ inputs.repo }}
@@ -56,7 +47,7 @@ jobs:
 
   docker:
     needs: [version]
-    if: ${{ needs.version.result == 'success' }}
+    if: ${{ needs.version.result == 'success' && github.event.pull_request.merged == true }}
     uses: ./.github/workflows/stage-docker.yml
     with:
       repo: ${{ inputs.repo }}
@@ -75,16 +66,12 @@ jobs:
 
   notify:
     if: ${{ always() }}
-    needs: [test_frontend, test_backend, version, docker, update_compose_env]
+    needs: [test, version, docker, update_compose_env]
     uses: ./.github/workflows/stage-discord.yml
     with:
       project: ${{ inputs.project }}
       repo: ${{ inputs.repo }}
-      test_result: >-
-        ${{ 
-          (inputs.build_type == 'maven' && needs.test_backend.result) ||
-          (inputs.build_type == 'node'  && needs.test_frontend.result) 
-        }}
+      test_result: ${{ needs.test.result }}
       version_result: ${{ needs.version.result }}
       docker_result: ${{ needs.docker.result }}
       update_compose_result: ${{ needs.update_compose_env.result }}

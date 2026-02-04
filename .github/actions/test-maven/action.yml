@@ -1,0 +1,21 @@
+name: "Test Backend (Maven)"
+description: "Run backend tests using Maven"
+inputs:
+  java_version:
+    description: "Java version"
+    required: false
+    default: "21"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java_version }}
+        cache: maven
+
+    - name: Run Maven tests
+      shell: bash
+      run: ./mvnw -q test

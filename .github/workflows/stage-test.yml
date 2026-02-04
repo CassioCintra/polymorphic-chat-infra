@@ -1,0 +1,44 @@
+name: stage-test
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        required: true
+        type: string
+      build_type:
+        required: true
+        type: string
+      project_key:
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target repo via Deploy Key
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          ref: development
+          fetch-depth: 0
+          ssh-key: ${{ inputs.project_key == 'backend' && secrets.BACKEND_DEPLOY_KEY || secrets.FRONTEND_DEPLOY_KEY }}
+
+      - name: Test Backend (Maven)
+        if: ${{ inputs.build_type == 'maven' }}
+        uses: ./.github/actions/test-maven
+
+      - name: Test Frontend (Node)
+        if: ${{ inputs.build_type == 'node' }}
+        uses: ./.github/actions/test-node
+
+      - name: Fail if invalid build_type
+        if: ${{ inputs.build_type != 'maven' && inputs.build_type != 'node' }}
+        shell: bash
+        run: |
+          echo "Invalid build_type: '${{ inputs.build_type }}' (expected 'maven' or 'node')"
+          exit 1

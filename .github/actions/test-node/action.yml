@@ -1,0 +1,24 @@
+name: "Test Frontend (Node)"
+description: "Run frontend tests using Node"
+inputs:
+  node_version:
+    description: "Node version"
+    required: false
+    default: "20"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node_version }}
+        cache: npm
+
+    - name: Install deps
+      shell: bash
+      run: npm ci
+
+    - name: Run tests
+      shell: bash
+      run: npm test
